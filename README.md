@@ -46,13 +46,20 @@ Set the credentials used to access the uTorrent Web UI.
 Retrieves the list of torrents. The torrents will be automatically parsed into objects with proper variable names.
 
 ```javascript
-utorrent.list(function(err, torrentList) {
-	if (err) { return console.log(err); }
+// retrieve all torrents.
+utorrent.list(function(err, torrentsList) {
+	if(err) {
+		return console.log(err);
+	}
 
-	console.log(torrentList);
+	console.log(torrentsList);
 
-	utorrent.list(torrntList.torrentc, function(err, changedList) {
-		if (err) { return console.log(err); }
+	// retrieve all torrents that have been updated since our last call.
+	utorrent.list(torrentsList.cacheID, function(err, changedList)
+	{
+		if (err) {
+			return console.log(err);
+		}
 
 		console.log(changedList);
 	});
@@ -61,17 +68,16 @@ utorrent.list(function(err, torrentList) {
 
 ### utorrent.callTorrent(action, hash, callback)
 
-Alias for utorrent.call(action, {hash: hash}, callback); This function can be used to perform actions on a single torrent using its hash.
+Alias for `utorrent.call(action, {hash: hash}, callback);`. This function can be used to perform actions on a single
+torrent using its hash. It's also possible to supply a hash array to perform the action against multiple torrents.
 
 ### utorrent.call(action, [params], callback)
 
 Low level function for direct communication with the API. The raw response from the API will be returned.
 
-Call the specified API action. If the action do not require params (like 'list'), this argument can be ignored.
+Call the specified API action. If the action does not require params (like 'list'), this argument can be ignored.
 
-If you want to use the 'add-file' method, just specify a 'torrent_file' param with a buffer containing the torrent file to upload to the API.
-
-Return an error to the callback (if one appeared) and an object containing the result sent back by the API.
+Returns an error to the callback (if one appeared) and an object containing the result sent back by the API.
 
 ## Torrent methods
 
@@ -103,8 +109,7 @@ The `utorrent.list` function returns a list of `Torrent`s. Those torrents themse
 ```javascript
 var Client = require('utorrent-api');
 
-var utorrent = new Client('localhost', '22222');
-utorrent.setCredentials('admin', '123456');
+var utorrent = new Client('localhost', '22222', 'admin', '123456');
 
 utorrent.call('list', function(err, torrents_list) {
 	if(err) { console.log(err); return; }
@@ -113,24 +118,52 @@ utorrent.call('list', function(err, torrents_list) {
 });
 ```
 
-### Add torrent file
+### Add torrent
 
+**Add torrent file**
 ```javascript
-var request = require('request');
 var Client = require('utorrent-api');
 var fs = require('fs');
 
-var utorrent = new Client('localhost', '22222');
-utorrent.setCredentials('admin', '123456');
+var utorrent = new Client('localhost', '22222', 'admin', '123456');
 
-request({'uri' : 'http://releases.ubuntu.com/13.04/ubuntu-13.04-desktop-i386.iso.torrent', 'encoding': null}, function (error, response, torrentFileBuffer) {
-	utorrent.call('add-file', {'torrent_file': torrentFileBuffer}, function(err, data) {
-		if(err) { console.log('error : '); console.log(err); return; }
+var uri = 'http://releases.ubuntu.com/13.04/ubuntu-13.04-desktop-i386.iso.torrent';
+utorrent.addFile(uri, function(err, data) {
+	if(err) {
+		console.log('error : ');
+		console.log(err);
+		return;
+	}
 
-		console.log('Successfully added torrent file !');
-		console.log(data);
-	});
+	console.log('Successfully added torrent file!');
+	console.log(data);
+	// data = { build: 40298 }
 });
+```
+
+**Add torrent URL**
+```javascript
+// initialization
+
+var url = 'magnet:?xt=urn:btih:fc8a15a2faf2734dbb1dc5f7afdc5c9beaeb1f59&dn=Ubuntu%2015.04%20Desktop%20Amd64%2C%20%5BIso%20-%20MultiLang%5D%20%5B%20%5D&tr=udp%3A%2F%2Ftracker.openbittorrent.com&tr=udp%3A%2F%2Ftracker.publicbt.com';
+utorrent.addUrl(uri, function(err, data) {
+	// same callback
+});
+```
+
+**Add torrent**
+
+For convenience, you can also use `utorrent.add`:
+
+```javascript
+// initialization
+
+// using the torrent file uri
+utorrent.addUrl(uri, function(err, data) {
+	// same callback
+});
+// now using the magnet link
+utorrent.addUrl(url); // you can omit the callback at your own risk.
 ```
 
 ### Get torrent details
@@ -139,8 +172,7 @@ request({'uri' : 'http://releases.ubuntu.com/13.04/ubuntu-13.04-desktop-i386.iso
 var Client = require('utorrent-api');
 var fs = require('fs');
 
-var utorrent = new Client('localhost', '22222');
-utorrent.setCredentials('admin', '123456');
+var utorrent = new Client('localhost', '22222', 'admin', '123456');
 
 utorrent.call('getprops', {'hash': 'daac7008e2e3a6e4321950c131690aca20c5a08a'}, function(err, data) {
 	if(err) { console.log('error : '); console.log(err); return; }
